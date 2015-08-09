@@ -70,7 +70,13 @@ ggmap(map, fullpage=T)
 
 #### 1. 找一個擁有經緯度的資料集來玩玩吧！
 
-Download Dataset from [Here](...) and load it in
+Download Dataset from [Here](https://raw.githubusercontent.com/unityculture/20150809_GeoViz_Tutorial/master/hsinchu.csv) and load it in
+
+```{r,eval=F}
+library(RCurl)
+url <- getURI('https://raw.githubusercontent.com/unityculture/20150809_GeoViz_Tutorial/master/hsinchu.csv')
+data <- read.csv(text = url)
+```
 
 ```{r,echo=F}
 library(data.table)
