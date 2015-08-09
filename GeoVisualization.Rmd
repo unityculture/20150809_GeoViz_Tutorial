@@ -29,9 +29,10 @@ About map
 - ggmap
 - ggplot2
 
-About wrangling data
+About data
 
 - dplyr (optional)
+- RCurl
 
 
 ************

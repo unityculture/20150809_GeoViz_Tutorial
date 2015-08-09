@@ -1,0 +1,237 @@
+---
+title: "Geographic Visualization with ggmap"
+subtitle: '快速上手'
+author: "林敬昇"
+date: "2015/8/9"
+output: 
+  ioslides_presentation: 
+    fig_height: 5
+    fig_width: 9
+    widescreen: yes
+---
+
+```{r,setup,include=F}
+knitr::opts_chunk$set(comment="",strip.white=F,warning=FALSE,message=F,echo=T,eval=T)
+```
+
+# 開始畫畫吧！
+
+## Overview
+
+- Introduction
+- 找地圖
+- 畫畫！
+- Conclusion
+
+# Introduction
+
+## Introduction
+
+ggmap is a new tool which enables such visualization by combining with *GoogleMaps*, *Openstreet* ... etc. 
+
+Besides, ggmap can combine with the powerful visualization packege, *ggplot2*,
+ which allow us to extent the applications of geographic visualization. ex:
+ geom_path ...
+ 
+## Packages required
+
+- Data :
+    - RCurl : loading dataset from website
+    - dplyr (optional)
+- Map :
+    - ggmap
+    - ggplot2
+    
+# 開始找地圖、畫地圖！
+
+# Part 1 : 在做地圖視覺化前，第一步要先學會畫地圖！
+
+## 載入*ggmap*套件
+
+```{r}
+library(ggmap)
+```
+
+## qmap = get_map + ggmap
+
+*qmap* 為 *get_map* 和 *ggmap* 的快速指令
+
+- get_map : 從 *Google Map* or *Open Street Map(OSM)* or ..取得地圖
+- ggmap : 將取得的地圖畫出來
+- 可以透過?get_map ?ggmap找相關的參數設定
+- location可以放經緯度or地名...
+    - "政治大學"
+    - c(lon = -95.3632715, lat = 29.7632836)
+- zoom 可以縮放（需要整數 1~21）
+
+## qmap = get_map + ggmap
+
+```{r}
+qmap(location = "台北車站", zoom = 14, source = "google") 
+```
+
+## qmap = get_map + ggmap
+
+```{r}
+qmap(location = "政治大學", zoom = 14, source = "osm")  
+```
+
+## qmap = get_map + ggmap
+
+```{r}
+# it's the same
+map <- get_map(location = '台北車站',zoom = 14, source= 'google')
+ggmap(map, fullpage=T)
+```
+
+# Part 2 : 地圖具備，只欠經緯！
+
+
+## 找一個擁有經緯度的資料集來玩玩吧！
+
+Download Dataset from [Here](https://raw.githubusercontent.com/unityculture/20150809_GeoViz_Tutorial/master/hsinchu.csv) and load it in
+
+```{r,eval=F}
+library(RCurl)
+url <- getURI('https://raw.githubusercontent.com/unityculture/20150809_GeoViz_Tutorial/master/hsinchu.csv')
+data <- read.csv(text = url)
+```
+
+```{r,echo=F}
+library(data.table)
+library(dplyr)
+data <- fread('hsinchu.csv',select=c(2:13))
+setnames(data,'單價萬_坪','單價_坪')
+data$price.level <- 
+  factor(data$price.level,levels = c('<10W','10~15W','15~20W','20~25W','>25W'))
+data %>% head
+```
+
+## 呼叫地圖！
+
+```{r}
+hs.map <- qmap(location='新竹市',zoom=13,source='google')
+```
+
+## 點點圖登場 ~ 將data的經緯度點上去！
+
+```{r}
+hs.map + geom_point(data=data,
+                    aes(x=lon, y=lat))
+```
+
+***
+
+- *geom_point* : ggplot2中畫點圖的工具
+- ggplot2為layer的概念，地圖畫上去在疊點點上去
+- 覺得地圖中右邊的點點有一點不甘心？
+- 覺得地圖的黑點點不好看？
+
+## 點點圖 - 調整位置、顏色
+
+
+- Tips : 若同一點資料量很多時，無法看出密集度怎麼辦？ ->  alpha
+- 調整中心位置至`馬偕紀念醫院新竹院區`
+
+***
+
+```{r}
+hs.map <- qmap(location='馬偕紀念醫院新竹院區',zoom=13,source='google',color='bw')
+hs.map + geom_point(data=data,
+                    aes(x=lon, y=lat, color='darkred'),alpha=0.2) +
+         guides(color='none') # 為了不要讓圖例出來
+```
+
+## 點點圖 - alpha 調整透明度
+
+- 剛剛只有交易房屋的所在地而已，並未加入價格資訊 -> fill
+- 透過price.level欄位將不同價位的房屋用不同顏色標出
+
+***
+
+```{r}
+hs.map + geom_point(data=data,
+                    aes(x=lon, y=lat,
+                        color=price.level,fill=price.level)) 
+```
+
+
+## 點點圖 - size 點點大小設定
+
+- 或是將價格資訊用點點大小表示！
+
+```{r}
+hs.map + 
+  geom_point(data=data,aes(x=lon, y=lat,size=price.level,color='darkred'),alpha=0.2) +
+         guides(color='none')
+```
+
+
+## 區域密度圖 (我取的la ^ _ ^)
+
+有時候單純想知道哪一些區域是相對密集時也可以考慮這種呈現方式
+
+一樣可以透過顏色來區分密度、或是價格資訊
+
+- *stat_bind*呼叫區域密度圖！
+- bins為格子數目, ex: bins=10 代表將地圖切割成10x10 
+
+***
+
+```{r}
+hs.map +
+  stat_bin2d(aes(x = lon, y = lat), bins = 10, alpha = 1/2,data = data)
+```
+
+## 區域密度圖
+
+- 深淺代表數目，顏色代表價格
+
+```{r}
+hs.map +
+stat_bin2d(aes(x = lon, y = lat, fill=price.level),bins = 30, alpha = .2, data = data)
+```
+
+## 熱圖 (also called Heat Map)
+
+- scale_fill_gradient : 自己設定熱圖顏色（低至高）！
+- scale_alpha : 自己設定熱圖透明度（低至高）！
+
+
+```{r,eval=F}
+hs.map +
+  stat_density2d(
+    aes(x = lon, y = lat, fill = ..level..,
+      alpha = ..level..),size=.01, bins = 16, data = data,
+    geom = "polygon")+
+  scale_fill_gradient(low = "yellow", high = "red")+
+  scale_alpha(range = c(0.00, 0.25), guide = FALSE)
+```
+
+***
+
+
+```{r,echo=F}
+hs.map +
+  stat_density2d(
+    aes(x = lon, y = lat, fill = ..level..,
+      alpha = ..level..),size=.01, bins = 16, data = data,
+    geom = "polygon")+
+  scale_fill_gradient(low = "yellow", high = "red")+
+  scale_alpha(range = c(0.00, 0.25), guide = FALSE)
+```
+
+## Conclusion
+
+- 呈現方式會隨著目的不同而調整
+- 參數設定需要點經驗和try and error (~~浪費一堆時間！！怒~~)
+- 一個好的資料視覺化作品包含很多故事，也需要花很多的時間
+- 在畫一張圖前記得先思考，你的目的、以及你想呈現的結果
+
+## Reference 
+
+- [https://github.com/Robinlovelace/Creating-maps-in-R](https://github.com/Robinlovelace/Creating-maps-in-R)
+
+- [http://stat405.had.co.nz/ggmap.pdf](http://stat405.had.co.nz/ggmap.pdf)
+- [http://www.markhneedham.com/blog/2014/11/17/r-ggmap-overlay-shapefile-with-filled-polygon-of-regions/](http://www.markhneedham.com/blog/2014/11/17/r-ggmap-overlay-shapefile-with-filled-polygon-of-regions/)
+- [https://cran.r-project.org/doc/contrib/intro-spatial-rl.pdf](https://cran.r-project.org/doc/contrib/intro-spatial-rl.pdf)
